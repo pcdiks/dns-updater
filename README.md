@@ -30,6 +30,14 @@ A dynamic DNS updater with a web GUI that automatically updates DNS records in A
 
 4. **Add DNS records** to track and update
 
+## Screenshots
+
+![Screenshot 1](screenshots/SCR-20260308-quvd.png)
+
+![Screenshot 2](screenshots/SCR-20260308-qwju.png)
+
+![Screenshot 3](screenshots/SCR-20260308-qwxv.png)
+
 ## Azure DNS Setup
 
 ### Prerequisites
