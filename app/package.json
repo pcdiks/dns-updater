@@ -1,0 +1,16 @@
+{
+  "name": "dns-updater",
+  "version": "1.0.0",
+  "description": "Dynamic DNS updater for Azure DNS and Cloudflare",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "axios": "^1.7.0",
+    "@azure/arm-dns": "^5.1.0",
+    "@azure/identity": "^4.5.0",
+    "node-cron": "^3.0.3"
+  }
+}

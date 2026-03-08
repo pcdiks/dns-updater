@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Updater</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div></div>
+                <h1>🌐 DNS Updater</h1>
+                <button id="darkModeToggle" class="dark-mode-btn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+            </div>
+            <p>Dynamic DNS management for Azure and Cloudflare</p>
+        </header>
+
+        <div class="status-card">
+            <h2>IP Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="label">Current IP:</span>
+                    <span id="currentIP" class="value">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Last Known IP:</span>
+                    <span id="lastIP" class="value">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Status:</span>
+                    <span id="ipStatus" class="value">-</span>
+                </div>
+            </div>
+            <button onclick="manualUpdate()" class="btn btn-primary">Update Now</button>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>DNS Providers</h2>
+                <button onclick="showProviderModal()" class="btn btn-success">+ Add Provider</button>
+            </div>
+            <div id="providersList" class="cards-grid"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>DNS Records</h2>
+                <button onclick="showRecordModal()" class="btn btn-success">+ Add Record</button>
+            </div>
+            <div id="recordsList" class="cards-grid"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>IP History</h2>
+                <button onclick="loadIPHistory()" class="btn btn-secondary btn-small">&#8635; Refresh</button>
+            </div>
+            <div id="ipHistoryContainer"><p class="history-empty">Loading...</p></div>
+        </div>
+
+        <div class="section">
+            <h2>Settings</h2>
+            <div class="form-group">
+                <label for="checkInterval">Check Interval (Cron Expression):</label>
+                <input type="text" id="checkInterval" placeholder="*/5 * * * *" />
+                <small>Example: */5 * * * * = Every 5 minutes, */15 * * * * = Every 15 minutes</small>
+                <button onclick="updateInterval()" class="btn btn-primary">Update Interval</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provider Modal -->
+    <div id="providerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="providerModalTitle">Add Provider</h2>
+                <span class="close" onclick="closeProviderModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="providerName">Provider Name:</label>
+                    <input type="text" id="providerName" placeholder="My DNS Provider" required />
+                </div>
+                
+                <div class="form-group">
+                    <label for="providerType">Provider Type:</label>
+                    <select id="providerType" onchange="updateProviderFields()">
+                        <option value="azure">Azure DNS</option>
+                        <option value="cloudflare">Cloudflare</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="zoneName">DNS Zone Name:</label>
+                    <input type="text" id="zoneName" placeholder="example.com" required />
+                </div>
+
+                <!-- Azure specific fields -->
+                <div id="azureFields">
+                    <div class="form-group">
+                        <label for="subscriptionId">Subscription ID:</label>
+                        <input type="text" id="subscriptionId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                    </div>
+                    <div class="form-group">
+                        <label for="tenantId">Tenant ID:</label>
+                        <input type="text" id="tenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                    </div>
+                    <div class="form-group">
+                        <label for="clientId">Client ID:</label>
+                        <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                    </div>
+                    <div class="form-group">
+                        <label for="clientSecret">Client Secret:</label>
+                        <input type="password" id="clientSecret" placeholder="Your client secret" />
+                    </div>
+                    <div class="form-group">
+                        <label for="resourceGroup">Resource Group:</label>
+                        <input type="text" id="resourceGroup" placeholder="my-resource-group" />
+                    </div>
+                </div>
+
+                <!-- Cloudflare specific fields -->
+                <div id="cloudflareFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="cfZoneId">Zone ID:</label>
+                        <input type="text" id="cfZoneId" placeholder="023e105f4ecef8ad9ca31a8372d0c353" />
+                        <small>Found in the Cloudflare dashboard sidebar under your domain → Overview.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="apiToken">API Token:</label>
+                        <input type="password" id="apiToken" placeholder="Your Cloudflare API token" />
+                        <small>Requires <strong>DNS:Edit</strong> permission on the zone.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeProviderModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="saveProvider()" class="btn btn-primary">Save Provider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Modal -->
+    <div id="recordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="recordModalTitle">Add DNS Record</h2>
+                <span class="close" onclick="closeRecordModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="recordProvider">Provider:</label>
+                    <select id="recordProvider" required></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="recordName">Record Name:</label>
+                    <input type="text" id="recordName" placeholder="home" required />
+                    <small>Use '@' for root domain</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="recordTTL">TTL (seconds):</label>
+                    <input type="number" id="recordTTL" value="3600" />
+                </div>
+
+                <div class="form-group" id="proxiedField" style="display: none;">
+                    <label>
+                        <input type="checkbox" id="recordProxied" />
+                        Proxied (Cloudflare Only)
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="recordEnabled" checked />
+                        Enabled
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeRecordModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="saveRecord()" class="btn btn-primary">Save Record</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteRecordModal" class="modal">
+        <div class="modal-content" style="max-width:460px;">
+            <div class="modal-header">
+                <h2>Delete DNS Record</h2>
+                <span class="close" onclick="closeDeleteRecordModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>You are about to delete <strong id="deleteRecordLabel"></strong>.</p>
+                <div class="delete-options">
+                    <label class="delete-option">
+                        <input type="radio" name="deleteScope" value="provider" checked />
+                        <span>
+                            <strong>Delete from tracker and DNS provider</strong><br>
+                            <small>The A record will be permanently deleted from Azure / Cloudflare.</small>
+                        </span>
+                    </label>
+                    <label class="delete-option">
+                        <input type="radio" name="deleteScope" value="tracker" />
+                        <span>
+                            <strong>Remove from tracker only</strong><br>
+                            <small>The DNS record stays in Azure / Cloudflare but will no longer be updated.</small>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDeleteRecordModal()" class="btn btn-secondary">Cancel</button>
+                <button id="confirmDeleteBtn" onclick="confirmDeleteRecord()" class="btn btn-danger">Delete from tracker and DNS provider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Results Modal -->
+    <div id="scanModal" class="modal">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h2 id="scanModalTitle">Scan DNS Zone</h2>
+                <span class="close" onclick="closeScanModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="scanLoading" class="scan-loading">
+                    <div class="spinner"></div>
+                    <p>Scanning DNS zone for A records...</p>
+                </div>
+                <div id="scanResults" style="display:none;">
+                    <p class="scan-hint">Select the A records you want to track. Already-tracked records are shown but cannot be re-added.</p>
+                    <div class="scan-actions-top">
+                        <button class="btn btn-secondary btn-small" onclick="selectAllScanRecords(true)">Select All</button>
+                        <button class="btn btn-secondary btn-small" onclick="selectAllScanRecords(false)">Deselect All</button>
+                    </div>
+                    <div id="scanRecordsList" class="scan-records-list"></div>
+                </div>
+                <div id="scanError" style="display:none;" class="scan-error"></div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeScanModal()" class="btn btn-secondary">Cancel</button>
+                <button id="importBtn" onclick="importScannedRecords()" class="btn btn-success" style="display:none;">Import Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
