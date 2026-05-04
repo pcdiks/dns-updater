@@ -51,13 +51,14 @@ async function loadIPHistory() {
     }
 }
 
+// Load and render logs
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
     loadConfig();
     loadStatus();
     loadIPHistory();
-    setInterval(loadStatus, 30000); // Refresh status every 30 seconds
+    setInterval(loadStatus, 30000);
 });
 
 // Load configuration from server
@@ -369,11 +370,20 @@ async function saveRecord() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(record)
         });
-        
+
         if (response.ok) {
-            showNotification('Record saved successfully', 'success');
+            const data = await response.json();
             closeRecordModal();
             await loadConfig();
+            if (data.syncResult) {
+                if (data.syncResult.success) {
+                    showNotification('Record saved and written to DNS provider', 'success');
+                } else {
+                    showNotification(`Record saved, but DNS sync failed: ${data.syncResult.error}`, 'error');
+                }
+            } else {
+                showNotification('Record saved successfully', 'success');
+            }
         } else {
             showNotification('Error saving record', 'error');
         }

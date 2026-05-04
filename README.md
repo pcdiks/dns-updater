@@ -9,6 +9,7 @@ A dynamic DNS updater with a web GUI that automatically updates DNS records in A
 - 🔄 **Automatic Updates**: Monitors your public IP and updates DNS records only when it changes
 - 🔍 **Zone Scanner**: Scan an existing DNS zone and import A records in one click
 - 📜 **IP History**: Tracks every IP change with date and time
+- 📋 **Log Viewer**: Dedicated logs page with search, level filters, and auto-refresh
 - 🌙 **Dark Mode**: Toggle between light and dark themes (preference persisted in browser)
 - 🐳 **Docker-Ready**: Runs as a containerized application
 - 💾 **Persistent Settings**: Configuration survives container restarts
@@ -24,7 +25,7 @@ A dynamic DNS updater with a web GUI that automatically updates DNS records in A
    ```
 
 2. **Access the web GUI:**
-   Open your browser to http://localhost:3000
+   Open your browser to http://localhost:3010
 
 3. **Configure your DNS provider** (see setup sections below)
 
@@ -153,6 +154,15 @@ The cron job calls the update function with `forceUpdate = false`, so DNS record
 
 Every time the IP changes, an entry is added to the **IP History** section (and persisted to `data/ip_history.json`), showing the previous IP, new IP, and the exact date and time of the change. Up to 500 entries are kept.
 
+### Logs
+
+Click the **📄 Logs** link in the top-right corner of the header to open the dedicated log viewer. It shows all server-side log output with:
+
+- **Search** — filter by any text (e.g. `azure`, `cloudflare`, `error`, `IP changed`, a record name)
+- **Level filters** — independently toggle INFO / WARN / ERROR
+- **Tag badges** — `[azure]`, `[cloudflare]`, and `[system]` prefixes on every log line
+- **Auto-refresh** every 15 seconds (can be toggled off)
+
 ### Dark Mode
 
 Click the 🌙 button in the top-right corner of the header to switch to dark mode. Click ☀️ to switch back. The preference is saved in your browser's `localStorage`.
@@ -242,7 +252,8 @@ The default port is 3000. To change it:
 
 ### DNS records not updating
 
-1. **Check logs:**
+1. **Check the log viewer:**
+   Click **📄 Logs** in the header, or run:
    ```bash
    docker-compose logs -f
    ```
@@ -253,7 +264,7 @@ The default port is 3000. To change it:
 
 3. **Check IP status:**
    - The web GUI shows current IP and last known IP
-   - Look for errors in the browser console
+   - Use the **📄 Logs** page to see detailed update results per record
 
 ### Can't access web GUI
 
@@ -296,6 +307,7 @@ The application exposes a REST API:
 - `GET /api/config` - Get current configuration (credentials masked)
 - `GET /api/status` - Get current IP status
 - `GET /api/ip-history` - Get IP change history
+- `GET /api/logs` - Get in-memory log buffer (supports `?limit=N`)
 - `POST /api/providers` - Add/update DNS provider
 - `DELETE /api/providers/:id` - Delete provider
 - `GET /api/providers/:id/scan` - Scan a provider's zone for existing A records

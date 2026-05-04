@@ -557,6 +557,245 @@ header p {
     margin-bottom: 10px;
 }
 
+/* ── Logs ──────────────────────────────────────────────────────────────── */
+.logs-container {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.82em;
+    background: #0f1117;
+    border-radius: 8px;
+    padding: 12px 0;
+    max-height: 420px;
+    overflow-y: auto;
+    color: #c9d1d9;
+}
+
+/* On the dedicated logs page, expand to fill the viewport */
+.logs-page-controls + .logs-container {
+    max-height: calc(100vh - 320px);
+    min-height: 300px;
+}
+
+.log-empty {
+    display: block;
+    padding: 10px 16px;
+    color: #666;
+}
+
+.log-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 2px 16px;
+    line-height: 1.6;
+    border-bottom: 1px solid #1e2027;
+}
+
+.log-line:last-child {
+    border-bottom: none;
+}
+
+.log-line:hover {
+    background: #161b22;
+}
+
+.log-ts {
+    flex-shrink: 0;
+    color: #484f58;
+    font-size: 0.92em;
+    min-width: 155px;
+}
+
+.log-level {
+    flex-shrink: 0;
+    font-size: 0.78em;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.log-level-info  { background: #1f6feb33; color: #58a6ff; }
+.log-level-warn  { background: #9e6a0333; color: #e3b341; }
+.log-level-error { background: #da363333; color: #f85149; }
+
+/* [tag] badges inside log lines */
+.log-tag {
+    flex-shrink: 0;
+    font-size: 0.75em;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.log-tag-azure      { background: #0078d420; color: #4fa3e0; border: 1px solid #0078d440; }
+.log-tag-cloudflare { background: #f3802020; color: #f3a05a; border: 1px solid #f3802040; }
+.log-tag-system     { background: #55555520; color: #999;    border: 1px solid #55555540; }
+
+.log-msg {
+    color: #c9d1d9;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.log-error .log-msg { color: #f85149; }
+.log-warn  .log-msg { color: #e3b341; }
+
+/* Search highlight */
+.log-msg mark {
+    background: #e3b34155;
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+body.dark .logs-container {
+    background: #080b10;
+    border: 1px solid #1e2027;
+}
+
+/* Logs toolbar (logs.html) */
+.logs-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logs-search-wrap {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+    position: relative;
+}
+
+.logs-search-wrap input {
+    width: 100%;
+    padding: 7px 30px 7px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+.logs-search-clear {
+    position: absolute;
+    right: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 0.9em;
+    padding: 2px 4px;
+}
+
+.logs-search-clear:hover { color: #555; }
+
+.logs-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.logs-level-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.logs-level-toggle input { cursor: pointer; }
+
+.logs-limit-select {
+    padding: 5px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.88em;
+}
+
+.logs-autorefresh-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.88em;
+    color: #666;
+    cursor: pointer;
+    user-select: none;
+}
+
+.logs-stats {
+    margin-top: 8px;
+    font-size: 0.85em;
+    color: #888;
+}
+
+/* View Logs link card on dashboard */
+.logs-link-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 16px 22px;
+    margin-bottom: 30px;
+    text-decoration: none;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.logs-link-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
+}
+
+.logs-link-icon { font-size: 1.4em; }
+.logs-link-text { flex: 1; font-weight: 600; font-size: 1em; }
+.logs-link-arrow { color: #aaa; font-size: 1.2em; }
+
+body.dark .logs-link-card {
+    background: #252638;
+    border-color: #3a3b5c;
+    color: #d8d8f0;
+}
+
+body.dark .logs-link-card:hover {
+    background: #2e2f4a;
+}
+
+body.dark .back-link:hover { color: white; text-decoration: underline; }
+
+/* Dark mode overrides for toolbar controls */
+.back-link {
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    font-size: 0.95em;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.back-link:hover { color: white; text-decoration: underline; }
+
+/* Dark mode overrides for toolbar controls */
+body.dark .logs-search-wrap input,
+body.dark .logs-limit-select {
+    background: #1e1f36;
+    border-color: #4a4b6e;
+    color: #e0e0f0;
+}
+
+body.dark .logs-search-clear { color: #6060a0; }
+body.dark .logs-search-clear:hover { color: #c0c0e0; }
+body.dark .logs-autorefresh-toggle { color: #9090b0; }
+body.dark .logs-stats { color: #7070a0; }
+
 /* ── IP History ─────────────────────────────────────────────── */
 .history-empty {
     color: #999;
@@ -660,6 +899,29 @@ body.dark .history-empty {
     margin-bottom: 8px;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-logs-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: white;
+    text-decoration: none;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.header-logs-btn:hover {
+    background: rgba(255,255,255,0.25);
+}
+
 .dark-mode-btn {
     background: rgba(255,255,255,0.15);
     border: 1px solid rgba(255,255,255,0.3);
@@ -721,6 +983,12 @@ body.dark .form-group input[type="text"],
 body.dark .form-group input[type="password"],
 body.dark .form-group input[type="number"],
 body.dark .form-group select {
+    background: #1e1f36;
+    border-color: #4a4b6e;
+    color: #e0e0f0;
+}
+
+body.dark #logLimit {
     background: #1e1f36;
     border-color: #4a4b6e;
     color: #e0e0f0;

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Updater – Logs</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <a href="/" class="back-link">&#8592; Dashboard</a>
+                <h1>&#128196; Logs</h1>
+                <button id="darkModeToggle" class="dark-mode-btn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+            </div>
+            <p>Server log output &mdash; auto-refreshes every 15 seconds</p>
+        </header>
+
+        <div class="section logs-page-controls">
+            <div class="logs-toolbar">
+                <div class="logs-search-wrap">
+                    <input type="text" id="logSearch" placeholder="Filter logs… (e.g. azure, cloudflare, error, IP changed)" oninput="applyFilter()" />
+                    <button class="logs-search-clear" onclick="clearSearch()" title="Clear">&#10005;</button>
+                </div>
+                <div class="logs-toolbar-right">
+                    <label class="logs-level-toggle">
+                        <input type="checkbox" id="filterInfo"  checked onchange="applyFilter()"> <span class="log-level log-level-info">INFO</span>
+                    </label>
+                    <label class="logs-level-toggle">
+                        <input type="checkbox" id="filterWarn"  checked onchange="applyFilter()"> <span class="log-level log-level-warn">WARN</span>
+                    </label>
+                    <label class="logs-level-toggle">
+                        <input type="checkbox" id="filterError" checked onchange="applyFilter()"> <span class="log-level log-level-error">ERROR</span>
+                    </label>
+                    <select id="logLimit" onchange="loadLogs()" class="logs-limit-select">
+                        <option value="100">100 lines</option>
+                        <option value="300" selected>300 lines</option>
+                        <option value="500">500 lines</option>
+                    </select>
+                    <label class="logs-autorefresh-toggle" title="Auto-refresh every 15s">
+                        <input type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh()"> Auto
+                    </label>
+                    <button onclick="loadLogs()" class="btn btn-secondary btn-small">&#8635; Refresh</button>
+                </div>
+            </div>
+            <div class="logs-stats" id="logsStats"></div>
+        </div>
+
+        <div class="logs-container" id="logsContainer">
+            <span class="log-empty">Loading…</span>
+        </div>
+    </div>
+
+    <script src="logs.js"></script>
+</body>
+</html>

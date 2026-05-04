@@ -12,6 +12,26 @@ const CONFIG_FILE = '/data/config.json';
 const IP_CACHE_FILE = '/data/last_ip.txt';
 const IP_HISTORY_FILE = '/data/ip_history.json';
 
+// ── In-memory log ring buffer ─────────────────────────────────────────────────
+const LOG_MAX = 300;
+const logBuffer = [];
+
+function addLog(level, args) {
+  const message = args.map(a =>
+    typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
+  ).join(' ');
+  logBuffer.unshift({ ts: new Date().toISOString(), level, message });
+  if (logBuffer.length > LOG_MAX) logBuffer.pop();
+}
+
+const _origLog   = console.log.bind(console);
+const _origWarn  = console.warn.bind(console);
+const _origError = console.error.bind(console);
+console.log   = (...a) => { _origLog(...a);   addLog('info',  a); };
+console.warn  = (...a) => { _origWarn(...a);  addLog('warn',  a); };
+console.error = (...a) => { _origError(...a); addLog('error', a); };
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use(express.json());
 app.use(express.static('public'));
 
@@ -27,13 +47,13 @@ async function loadConfig() {
   try {
     const data = await fs.readFile(CONFIG_FILE, 'utf8');
     config = JSON.parse(data);
-    console.log('Configuration loaded');
+    console.log('[system] Configuration loaded');
   } catch (error) {
     if (error.code === 'ENOENT') {
-      console.log('No existing configuration, starting fresh');
+      console.log('[system] No existing configuration, starting fresh');
       await saveConfig();
     } else {
-      console.error('Error loading config:', error);
+      console.error('[system] Error loading config:', error);
     }
   }
 }
@@ -43,9 +63,9 @@ async function saveConfig() {
   try {
     await fs.mkdir('/data', { recursive: true });
     await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2));
-    console.log('Configuration saved');
+    console.log('[system] Configuration saved');
   } catch (error) {
-    console.error('Error saving config:', error);
+    console.error('[system] Error saving config:', error);
   }
 }
 
@@ -65,7 +85,7 @@ async function getCurrentIP() {
       // try next service
     }
   }
-  console.error('Error getting public IP: all services failed');
+  console.error('[system] Error getting public IP: all services failed');
   return null;
 }
 
@@ -84,7 +104,7 @@ async function saveCurrentIP(ip) {
     await fs.mkdir('/data', { recursive: true });
     await fs.writeFile(IP_CACHE_FILE, ip);
   } catch (error) {
-    console.error('Error saving IP:', error);
+    console.error('[system] Error saving IP:', error);
   }
 }
 
@@ -101,7 +121,7 @@ async function appendIPHistory(oldIp, newIp) {
     if (history.length > 500) history = history.slice(0, 500);
     await fs.writeFile(IP_HISTORY_FILE, JSON.stringify(history, null, 2));
   } catch (error) {
-    console.error('Error saving IP history:', error);
+    console.error('[system] Error saving IP history:', error);
   }
 }
 
@@ -129,10 +149,10 @@ async function updateAzureDNS(provider, record, ipAddress) {
       recordSet
     );
     
-    console.log(`Updated Azure DNS: ${record.name}.${provider.zoneName} -> ${ipAddress}`);
+    console.log(`[azure] Updated ${record.name}.${provider.zoneName} -> ${ipAddress}`);
     return { success: true };
   } catch (error) {
-    console.error('Error updating Azure DNS:', error);
+    console.error(`[azure] Error updating ${record.name}.${provider.zoneName}: ${error.message}`);
     return { success: false, error: error.message };
   }
 }
@@ -181,10 +201,10 @@ async function updateCloudflareDNS(provider, record, ipAddress) {
       );
     }
     
-    console.log(`Updated Cloudflare DNS: ${record.name}.${provider.zoneName} -> ${ipAddress}`);
+    console.log(`[cloudflare] Updated ${record.name}.${provider.zoneName} -> ${ipAddress}`);
     return { success: true };
   } catch (error) {
-    console.error('Error updating Cloudflare DNS:', error);
+    console.error(`[cloudflare] Error updating ${record.name}.${provider.zoneName}: ${error.response?.data?.errors ? JSON.stringify(error.response.data.errors) : error.message}`);
     return { success: false, error: error.response?.data?.errors || error.message };
   }
 }
@@ -193,18 +213,18 @@ async function updateCloudflareDNS(provider, record, ipAddress) {
 async function updateAllRecords(forceUpdate = false) {
   const currentIP = await getCurrentIP();
   if (!currentIP) {
-    console.error('Could not determine current IP');
+    console.error('[system] Could not determine current IP');
     return { success: false, message: 'Could not determine current IP' };
   }
   
   const lastIP = await getLastIP();
   
   if (!forceUpdate && currentIP === lastIP) {
-    console.log(`IP unchanged: ${currentIP}`);
+    console.log(`[system] IP unchanged: ${currentIP}`);
     return { success: true, message: 'IP unchanged', ip: currentIP };
   }
   
-  console.log(`IP changed: ${lastIP} -> ${currentIP}`);
+  console.log(`[system] IP changed: ${lastIP} -> ${currentIP}`);
   
   const results = [];
   
@@ -215,7 +235,7 @@ async function updateAllRecords(forceUpdate = false) {
     
     const provider = config.providers.find(p => p.id === record.providerId);
     if (!provider) {
-      console.error(`Provider not found for record: ${record.name}`);
+      console.error(`[system] Provider not found for record: ${record.name}`);
       continue;
     }
     
@@ -270,6 +290,12 @@ app.get('/api/ip-history', async (req, res) => {
   }
 });
 
+// Get logs
+app.get('/api/logs', (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 100, LOG_MAX);
+  res.json({ success: true, logs: logBuffer.slice(0, limit) });
+});
+
 // Get current IP status
 app.get('/api/status', async (req, res) => {
   const currentIP = await getCurrentIP();
@@ -319,20 +345,40 @@ app.delete('/api/providers/:id', async (req, res) => {
 // Add or update DNS record
 app.post('/api/records', async (req, res) => {
   const record = req.body;
-  
-  if (!record.id) {
+
+  const isNew = !record.id;
+  if (isNew) {
     record.id = Date.now().toString();
   }
-  
+
   const index = config.records.findIndex(r => r.id === record.id);
   if (index >= 0) {
     config.records[index] = record;
   } else {
     config.records.push(record);
   }
-  
+
   await saveConfig();
-  res.json({ success: true, record });
+
+  // For new or edited enabled records, immediately write the current IP to the DNS provider
+  // so changes appear right away without waiting for the next cron tick.
+  let syncResult = null;
+  if (record.enabled) {
+    const provider = config.providers.find(p => p.id === record.providerId);
+    if (provider) {
+      const currentIP = await getCurrentIP();
+      if (currentIP) {
+        if (provider.type === 'azure') {
+          syncResult = await updateAzureDNS(provider, record, currentIP);
+        } else if (provider.type === 'cloudflare') {
+          syncResult = await updateCloudflareDNS(provider, record, currentIP);
+        }
+        console.log(`[${provider.type}] DNS sync for ${isNew ? 'new' : 'edited'} record ${record.name}.${provider.zoneName}: ${syncResult?.success ? 'OK' : syncResult?.error}`);
+      }
+    }
+  }
+
+  res.json({ success: true, record, syncResult });
 });
 
 // Delete an A record from Azure DNS
@@ -399,7 +445,7 @@ app.delete('/api/records/:id', async (req, res) => {
         await deleteCloudflareDNS(provider, record);
       }
     } catch (error) {
-      console.error('Error deleting from provider:', error);
+      console.error(`[${provider.type}] Error deleting ${record.name}.${provider.zoneName}: ${error.message}`);
       return res.status(500).json({ success: false, error: error.message });
     }
   }
@@ -490,7 +536,7 @@ app.get('/api/providers/:id/scan', async (req, res) => {
     const result = found.map(r => ({ ...r, alreadyTracked: tracked.has(r.name) }));
     res.json({ success: true, records: result });
   } catch (error) {
-    console.error('Error scanning zone:', error);
+    console.error('[system] Error scanning zone:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -519,11 +565,11 @@ function setupCron() {
   }
   
   cronJob = cron.schedule(config.checkInterval, () => {
-    console.log('Running scheduled DNS update check...');
+    console.log('[system] Running scheduled DNS update check...');
     updateAllRecords(false);
   });
   
-  console.log(`Cron job scheduled: ${config.checkInterval}`);
+  console.log(`[system] Cron job scheduled: ${config.checkInterval}`);
 }
 
 // Initialize and start server
@@ -532,8 +578,8 @@ async function start() {
   setupCron();
   
   app.listen(PORT, () => {
-    console.log(`DNS Updater running on port ${PORT}`);
-    console.log(`Web GUI: http://localhost:${PORT}`);
+    console.log(`[system] DNS Updater running on port ${PORT}`);
+    console.log(`[system] Web GUI: http://localhost:${PORT}`);
   });
 }
 
